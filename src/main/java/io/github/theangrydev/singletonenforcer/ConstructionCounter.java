@@ -38,7 +38,7 @@ public class ConstructionCounter {
     }
 
     @SuppressWarnings("unused") // Invoked by ByteBuddy
-    public Object intercept(@This Object object, @AllArguments Object[] args) {
+    public Object intercept(@This Object object) {
         if (!seen.add(object)) {
             return null;
         }
