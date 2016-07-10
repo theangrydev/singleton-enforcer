@@ -2,7 +2,7 @@ package io.github.theangrydev.singletonenforcer;
 
 public class ClassWithLeakedDependency {
 
-    public ClassWithLeakedDependency(LeakedDependency leakedDependency) {
+    public ClassWithLeakedDependency(LeakedDependencyInterface leakedDependency) {
 
     }
 }

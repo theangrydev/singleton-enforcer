@@ -51,7 +51,7 @@ public class ConstructionCounter {
 
     public List<Class<?>> dependencyUsageOutsideOf(Class<?> singleton, Class<?> typeOfDependencyThatShouldNotBeLeaked) {
         Object dependencyThatShouldNotBeLeaked = classDependencies.get(singleton).stream()
-                .filter(dependency -> dependency.getClass().equals(typeOfDependencyThatShouldNotBeLeaked))
+                .filter(dependency -> typeOfDependencyThatShouldNotBeLeaked.isAssignableFrom(dependency.getClass()))
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException(format("Singleton '%s' does not have dependency of type '%s'", singleton, typeOfDependencyThatShouldNotBeLeaked)));
         return usagesThatAreNotBy(singleton, dependencyUsage.get(dependencyThatShouldNotBeLeaked));
