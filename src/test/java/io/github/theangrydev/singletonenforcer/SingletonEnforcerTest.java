@@ -38,6 +38,6 @@ public class SingletonEnforcerTest implements WithAssertions {
         new SingletonWithDependency(leakedDependency, new Object());
         new ClassWithLeakedDependency(leakedDependency);
 
-        singletonEnforcer.checkSingletonDependenciesAreNotLeaked(SingletonWithDependency.class, LeakedDependency.class);
+        singletonEnforcer.checkDependencyIsNotLeaked(SingletonWithDependency.class, LeakedDependency.class);
     }
 }

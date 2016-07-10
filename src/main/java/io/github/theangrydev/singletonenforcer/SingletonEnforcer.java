@@ -25,7 +25,7 @@ public class SingletonEnforcer {
         checkSingletonsAreConstructedOnce(singletons);
     }
 
-    public void checkSingletonDependenciesAreNotLeaked(Class<?> singleton, Class<?> typeOfDependencyThatShouldNotBeLeaked) {
+    public void checkDependencyIsNotLeaked(Class<?> singleton, Class<?> typeOfDependencyThatShouldNotBeLeaked) {
         List<Class<?>> leakedTo = constructionCounter.dependencyUsageOutsideOf(singleton, typeOfDependencyThatShouldNotBeLeaked);
         if (!leakedTo.isEmpty()) {
             fail(format("The dependency '%s' of '%s' was leaked to: %s", typeOfDependencyThatShouldNotBeLeaked, singleton, leakedTo));
