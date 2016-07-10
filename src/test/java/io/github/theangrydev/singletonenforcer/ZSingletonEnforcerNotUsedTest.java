@@ -2,7 +2,7 @@ package io.github.theangrydev.singletonenforcer;
 
 import org.junit.Test;
 
-public class AnotherTest {
+public class ZSingletonEnforcerNotUsedTest {
 
     @Test
     public void another() {

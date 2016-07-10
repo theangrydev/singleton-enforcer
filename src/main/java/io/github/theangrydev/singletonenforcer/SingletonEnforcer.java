@@ -10,11 +10,14 @@ import static org.junit.Assert.fail;
 
 public class SingletonEnforcer {
 
-    private final ConstructionCounter constructionCounter;
+    private final ConstructionCounter constructionCounter = new ConstructionCounter();
 
-    public SingletonEnforcer() {
-        constructionCounter = new ConstructionCounter();
+    public void setUp() {
         constructionCounter.listenForConstructions();
+    }
+
+    public void tearDown() {
+        constructionCounter.stopListeningForConstructions();
     }
 
     public void checkSingletons(Runnable execution, Class<?>... singletons) {

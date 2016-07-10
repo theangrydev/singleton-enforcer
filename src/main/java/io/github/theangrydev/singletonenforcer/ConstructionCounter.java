@@ -7,6 +7,8 @@ import net.bytebuddy.implementation.SuperMethodCall;
 import net.bytebuddy.implementation.bind.annotation.RuntimeType;
 import net.bytebuddy.implementation.bind.annotation.This;
 
+import java.lang.instrument.ClassFileTransformer;
+import java.lang.instrument.Instrumentation;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -20,14 +22,19 @@ import static net.bytebuddy.matcher.ElementMatchers.any;
 public class ConstructionCounter {
     private Set<Object> seen =  Collections.newSetFromMap(new ConcurrentHashMap<>());
     private Map<Class<?>, AtomicLong> constructionCounts = new ConcurrentHashMap<>();
+    private ClassFileTransformer classFileTransformer;
+    private Instrumentation instrumentation;
 
     public void listenForConstructions() {
-        ByteBuddyAgent.install();
-
-        new AgentBuilder.Default().type(any()).transform((builder, typeDescription, classLoader) -> builder
+        instrumentation = ByteBuddyAgent.install();
+        classFileTransformer = new AgentBuilder.Default().type(any()).transform((builder, typeDescription, classLoader) -> builder
                 .constructor(any())
                 .intercept(SuperMethodCall.INSTANCE.andThen(MethodDelegation.to(this))))
-                .installOnByteBuddyAgent();
+                .installOn(instrumentation);
+    }
+
+    public void stopListeningForConstructions() {
+        instrumentation.removeTransformer(classFileTransformer);
     }
 
     public Set<Class<?>> classesConstructedMoreThanOnce() {
@@ -40,6 +47,7 @@ public class ConstructionCounter {
     @SuppressWarnings("unused") // Invoked by ByteBuddy
     @RuntimeType
     public void intercept(@This Object object) {
+        System.out.println("object = " + object);
         if (!seen.add(object)) {
             return;
         }
