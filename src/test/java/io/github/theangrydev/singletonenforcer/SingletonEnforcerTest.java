@@ -32,7 +32,7 @@ public class SingletonEnforcerTest implements WithAssertions {
         singletonEnforcer.checkSingletons(Singleton.class);
     }
 
-    @Test//(expected = AssertionError.class)
+    @Test(expected = AssertionError.class)
     public void failsWhenDependencyIsLeaked() {
         LeakedDependencyInterface leakedDependency = new LeakedDependency();
         new SingletonWithDependency(leakedDependency, new Object());
