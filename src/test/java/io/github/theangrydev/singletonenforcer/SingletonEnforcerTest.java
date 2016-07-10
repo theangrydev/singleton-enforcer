@@ -21,14 +21,23 @@ public class SingletonEnforcerTest implements WithAssertions {
 
     @Test
     public void doesNotFailWhenASingletonIsConstructedOnlyOnce() {
-        singletonEnforcer.checkSingletons(Singleton::new, Singleton.class);
+        new Singleton();
+        singletonEnforcer.checkSingletons(Singleton.class);
     }
 
     @Test(expected = AssertionError.class)
     public void failsWhenASingletonIsConstructedMoreThanOnce() {
-        singletonEnforcer.checkSingletons(() -> {
-            new Singleton();
-            new Singleton();
-        }, Singleton.class);
+        new Singleton();
+        new Singleton();
+        singletonEnforcer.checkSingletons(Singleton.class);
+    }
+
+    @Test(expected = AssertionError.class)
+    public void failsWhenDependencyIsLeaked() {
+        LeakedDependency leakedDependency = new LeakedDependency();
+        new SingletonWithDependency(leakedDependency, new Object());
+        new ClassWithLeakedDependency(leakedDependency);
+
+        singletonEnforcer.checkSingletonDependenciesAreNotLeaked(SingletonWithDependency.class, LeakedDependency.class);
     }
 }
