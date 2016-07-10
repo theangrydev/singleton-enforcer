@@ -4,7 +4,7 @@ import net.bytebuddy.agent.ByteBuddyAgent;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.implementation.MethodDelegation;
 import net.bytebuddy.implementation.SuperMethodCall;
-import net.bytebuddy.implementation.bind.annotation.AllArguments;
+import net.bytebuddy.implementation.bind.annotation.RuntimeType;
 import net.bytebuddy.implementation.bind.annotation.This;
 
 import java.util.Collections;
@@ -38,14 +38,14 @@ public class ConstructionCounter {
     }
 
     @SuppressWarnings("unused") // Invoked by ByteBuddy
-    public Object intercept(@This Object object) {
+    @RuntimeType
+    public void intercept(@This Object object) {
         if (!seen.add(object)) {
-            return null;
+            return;
         }
         AtomicLong atomicLong = constructionCounts.putIfAbsent(object.getClass(), new AtomicLong(1));
         if (atomicLong != null) {
             atomicLong.incrementAndGet();
         }
-        return null;
     }
 }
