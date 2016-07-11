@@ -21,22 +21,11 @@ public class SingletonEnforcer {
         constructionCounter.stopListeningForConstructions();
     }
 
-    public void checkSingletons(Class<?>... singletons) {
-        checkSingletons(Arrays.asList(singletons));
+    public void checkSingletonsAreConstructedOnce(Class<?>... singletons) {
+        checkSingletonsAreConstructedOnce(Arrays.asList(singletons));
     }
 
-    public void checkSingletons(List<Class<?>> singletons) {
-        checkSingletonsAreConstructedOnce(singletons);
-    }
-
-    public void checkDependencyIsNotLeaked(Class<?> singleton, Class<?> typeOfDependencyThatShouldNotBeLeaked) {
-        List<Class<?>> leakedTo = constructionCounter.dependencyUsageOutsideOf(singleton, typeOfDependencyThatShouldNotBeLeaked);
-        if (!leakedTo.isEmpty()) {
-            fail(format("The dependency '%s' of '%s' was leaked to: %s", typeOfDependencyThatShouldNotBeLeaked, singleton, leakedTo));
-        }
-    }
-
-    private void checkSingletonsAreConstructedOnce(List<Class<?>> singletons) {
+    public void checkSingletonsAreConstructedOnce(List<Class<?>> singletons) {
         Set<Class<?>> classesConstructedMoreThanOnce = constructionCounter.classesConstructedMoreThanOnce();
 
         List<Class<?>> notSingletons = new ArrayList<>();
@@ -47,4 +36,12 @@ public class SingletonEnforcer {
             fail(format("The following singletons were constructed more than once: %s", singletons));
         }
     }
+
+    public void checkDependencyIsNotLeaked(Class<?> singleton, Class<?> typeOfDependencyThatShouldNotBeLeaked) {
+        List<Class<?>> leakedTo = constructionCounter.dependencyUsageOutsideOf(singleton, typeOfDependencyThatShouldNotBeLeaked);
+        if (!leakedTo.isEmpty()) {
+            fail(format("The dependency '%s' of '%s' was leaked to: %s", typeOfDependencyThatShouldNotBeLeaked, singleton, leakedTo));
+        }
+    }
+
 }

@@ -22,14 +22,14 @@ public class SingletonEnforcerTest implements WithAssertions {
     @Test
     public void doesNotFailWhenASingletonIsConstructedOnlyOnce() {
         new Singleton();
-        singletonEnforcer.checkSingletons(Singleton.class);
+        singletonEnforcer.checkSingletonsAreConstructedOnce(Singleton.class);
     }
 
     @Test(expected = AssertionError.class)
     public void failsWhenASingletonIsConstructedMoreThanOnce() {
         new Singleton();
         new Singleton();
-        singletonEnforcer.checkSingletons(Singleton.class);
+        singletonEnforcer.checkSingletonsAreConstructedOnce(Singleton.class);
     }
 
     @Test(expected = AssertionError.class)
