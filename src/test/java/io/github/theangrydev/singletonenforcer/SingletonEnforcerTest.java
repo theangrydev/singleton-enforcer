@@ -11,7 +11,7 @@ public class SingletonEnforcerTest implements WithAssertions {
 
     @Before
     public void setUp() {
-        singletonEnforcer.setUp();
+        singletonEnforcer.setUp("io.github.theangrydev.singletonenforcer");
     }
 
     @After

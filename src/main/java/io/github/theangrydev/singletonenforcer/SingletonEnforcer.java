@@ -1,15 +1,19 @@
 package io.github.theangrydev.singletonenforcer;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
 
 import static java.lang.String.format;
 import static org.junit.Assert.fail;
 
 public class SingletonEnforcer {
 
-    private final ConstructionCounter constructionCounter = new ConstructionCounter();
+    private ConstructionCounter constructionCounter;
 
-    public void setUp() {
+    public void setUp(String packageToCover) {
+        constructionCounter = new ConstructionCounter(packageToCover);
         constructionCounter.listenForConstructions();
     }
 
@@ -21,7 +25,7 @@ public class SingletonEnforcer {
         checkSingletons(Arrays.asList(singletons));
     }
 
-    private void checkSingletons(List<Class<?>> singletons) {
+    public void checkSingletons(List<Class<?>> singletons) {
         checkSingletonsAreConstructedOnce(singletons);
     }
 

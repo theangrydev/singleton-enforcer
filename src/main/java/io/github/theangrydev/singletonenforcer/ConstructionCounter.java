@@ -13,14 +13,16 @@ import java.lang.instrument.Instrumentation;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
-import static net.bytebuddy.matcher.ElementMatchers.any;
-
+import static net.bytebuddy.matcher.ElementMatchers.*;
 
 public class ConstructionCounter {
+
+    private final String packageToCover;
 
     private Map<Class<?>, List<Object>> classDependencies = new ConcurrentHashMap<>();
     private Map<Object, List<Class<?>>> dependencyUsage = new ConcurrentHashMap<>();
@@ -30,10 +32,14 @@ public class ConstructionCounter {
     private ClassFileTransformer classFileTransformer;
     private Instrumentation instrumentation;
 
+    public ConstructionCounter(String packageToCover) {
+        this.packageToCover = packageToCover;
+    }
+
     public void listenForConstructions() {
         instrumentation = ByteBuddyAgent.install();
-        classFileTransformer = new AgentBuilder.Default().type(any()).transform((builder, typeDescription, classLoader) -> builder
-                .constructor(any())
+        classFileTransformer = new AgentBuilder.Default().type(not(isInterface()).and(nameStartsWith(packageToCover))).transform((builder, typeDescription, classLoader) -> builder
+                .constructor(not(isBridge()))
                 .intercept(SuperMethodCall.INSTANCE.andThen(MethodDelegation.to(this))))
                 .installOn(instrumentation);
     }
@@ -50,11 +56,13 @@ public class ConstructionCounter {
     }
 
     public List<Class<?>> dependencyUsageOutsideOf(Class<?> singleton, Class<?> typeOfDependencyThatShouldNotBeLeaked) {
-        Object dependencyThatShouldNotBeLeaked = classDependencies.get(singleton).stream()
+        List<Object> dependencyThatShouldNotBeLeaked = classDependencies.get(singleton).stream()
                 .filter(dependency -> typeOfDependencyThatShouldNotBeLeaked.isAssignableFrom(dependency.getClass()))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException(format("Singleton '%s' does not have dependency of type '%s'", singleton, typeOfDependencyThatShouldNotBeLeaked)));
-        return usagesThatAreNotBy(singleton, dependencyUsage.get(dependencyThatShouldNotBeLeaked));
+                .collect(Collectors.toList());
+        if (dependencyThatShouldNotBeLeaked.size() != 1) {
+            throw new IllegalArgumentException(format("Type '%s' is not a singleton!", singleton));
+        }
+        return usagesThatAreNotBy(singleton, dependencyUsage.get(dependencyThatShouldNotBeLeaked.get(0)));
     }
 
     private List<Class<?>> usagesThatAreNotBy(Class<?> target, List<Class<?>> usages) {
