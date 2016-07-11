@@ -33,6 +33,7 @@ public class ConstructionCounter {
 
     private Set<Object> seen =  new HashSet<>();
     private Map<Class<?>, AtomicLong> constructionCounts = new HashMap<>();
+
     private ClassFileTransformer classFileTransformer;
     private Instrumentation instrumentation;
 
