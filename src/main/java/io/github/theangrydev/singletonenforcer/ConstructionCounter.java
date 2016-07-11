@@ -28,11 +28,11 @@ public class ConstructionCounter {
 
     private final String packageToCover;
 
-    private Map<Class<?>, List<Object>> classDependencies = new ConcurrentHashMap<>();
-    private Map<Object, List<Class<?>>> dependencyUsage = new ConcurrentHashMap<>();
+    private Map<Class<?>, List<Object>> classDependencies = new HashMap<>();
+    private Map<Object, List<Class<?>>> dependencyUsage = new HashMap<>();
 
-    private Set<Object> seen =  Collections.newSetFromMap(new ConcurrentHashMap<>());
-    private Map<Class<?>, AtomicLong> constructionCounts = new ConcurrentHashMap<>();
+    private Set<Object> seen =  new HashSet<>();
+    private Map<Class<?>, AtomicLong> constructionCounts = new HashMap<>();
     private ClassFileTransformer classFileTransformer;
     private Instrumentation instrumentation;
 
@@ -81,10 +81,11 @@ public class ConstructionCounter {
 
     @SuppressWarnings("unused") // Invoked by ByteBuddy
     @RuntimeType
-    public void intercept(@This Object object, @AllArguments Object[] dependencies) {
+    public synchronized void intercept(@This Object object, @AllArguments Object[] dependencies) {
         recordDependencies(object.getClass(), dependencies);
         recordUsage(object.getClass(), dependencies);
-        if (!seen.add(object)) {
+        boolean alreadySeen = !seen.add(object);
+        if (alreadySeen) {
             return;
         }
         AtomicLong atomicLong = constructionCounts.putIfAbsent(object.getClass(), new AtomicLong(1));
