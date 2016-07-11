@@ -45,7 +45,7 @@ public class ConstructionCounter {
         Junction<TypeDescription> typeConditions = not(isInterface()).and(not(isSynthetic())).and(nameStartsWith(packageToCover));
         Junction<MethodDescription> constructorConditions = not(isBridge()).and(not(isSynthetic()));
 
-        instrumentation = ByteBuddyAgent.install();
+        instrumentation = ByteBuddyAgent.getInstrumentation();
         classFileTransformer = new AgentBuilder.Default().type(typeConditions).transform((builder, typeDescription, classLoader) -> builder
                 .constructor(constructorConditions)
                 .intercept(SuperMethodCall.INSTANCE.andThen(MethodDelegation.to(this))))
