@@ -2,11 +2,15 @@ package io.github.theangrydev.singletonenforcer;
 
 import net.bytebuddy.agent.ByteBuddyAgent;
 import net.bytebuddy.agent.builder.AgentBuilder;
+import net.bytebuddy.description.method.MethodDescription;
+import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.implementation.MethodDelegation;
 import net.bytebuddy.implementation.SuperMethodCall;
 import net.bytebuddy.implementation.bind.annotation.AllArguments;
 import net.bytebuddy.implementation.bind.annotation.RuntimeType;
 import net.bytebuddy.implementation.bind.annotation.This;
+import net.bytebuddy.matcher.ElementMatcher;
+import net.bytebuddy.matcher.ElementMatcher.Junction;
 
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.Instrumentation;
@@ -37,9 +41,12 @@ public class ConstructionCounter {
     }
 
     public void listenForConstructions() {
+        Junction<TypeDescription> typeConditions = not(isInterface()).and(not(isSynthetic())).and(nameStartsWith(packageToCover));
+        Junction<MethodDescription> constructorConditions = not(isBridge()).and(not(isSynthetic()));
+
         instrumentation = ByteBuddyAgent.install();
-        classFileTransformer = new AgentBuilder.Default().type(not(isInterface()).and(nameStartsWith(packageToCover))).transform((builder, typeDescription, classLoader) -> builder
-                .constructor(not(isBridge()))
+        classFileTransformer = new AgentBuilder.Default().type(typeConditions).transform((builder, typeDescription, classLoader) -> builder
+                .constructor(constructorConditions)
                 .intercept(SuperMethodCall.INSTANCE.andThen(MethodDelegation.to(this))))
                 .installOn(instrumentation);
     }
