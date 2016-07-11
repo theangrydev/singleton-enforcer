@@ -52,7 +52,10 @@ public class ConstructionCounter {
     }
 
     public void stopListeningForConstructions() {
-        instrumentation.removeTransformer(classFileTransformer);
+        boolean removed = instrumentation.removeTransformer(classFileTransformer);
+        if (!removed) {
+            throw new IllegalStateException("Could not remove transformer");
+        }
     }
 
     public Set<Class<?>> classesConstructedMoreThanOnce() {
