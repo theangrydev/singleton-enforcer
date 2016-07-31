@@ -1,7 +1,7 @@
 # singleton-enforcer
 Tool to enforce that certain classes are ony ever constructed once
 
-```
+```xml
 <dependency>
     <groupId>io.github.theangrydev</groupId>
     <artifactId>singleton-enforcer</artifactId>
