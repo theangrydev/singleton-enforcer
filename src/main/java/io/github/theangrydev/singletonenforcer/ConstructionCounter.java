@@ -1,3 +1,20 @@
+/*
+ * Copyright 2016 Liam Williams <liam.williams@zoho.com>.
+ *
+ * This file is part of singleton-enforcer.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.github.theangrydev.singletonenforcer;
 
 import net.bytebuddy.agent.ByteBuddyAgent;
@@ -9,30 +26,30 @@ import net.bytebuddy.implementation.SuperMethodCall;
 import net.bytebuddy.implementation.bind.annotation.AllArguments;
 import net.bytebuddy.implementation.bind.annotation.RuntimeType;
 import net.bytebuddy.implementation.bind.annotation.This;
-import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatcher.Junction;
 
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.Instrumentation;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static net.bytebuddy.matcher.ElementMatchers.*;
 
+@SuppressWarnings("PMD.UseConcurrentHashMap") // intentionally using a single global lock
 public class ConstructionCounter {
+
+    private static final Object LOCK = new Object();
 
     private final String packageToCover;
 
-    private Map<Class<?>, List<Object>> classDependencies = new HashMap<>();
-    private Map<Object, List<Class<?>>> dependencyUsage = new HashMap<>();
+    private final Map<Class<?>, List<Object>> classDependencies = new HashMap<>();
+    private final Map<Object, List<Class<?>>> dependencyUsage = new HashMap<>();
 
-    private Set<Object> seen =  new HashSet<>();
-    private Map<Class<?>, AtomicLong> constructionCounts = new HashMap<>();
+    private final Set<Object> seen =  new HashSet<>();
+    private final Map<Class<?>, AtomicLong> constructionCounts = new HashMap<>();
 
     private ClassFileTransformer classFileTransformer;
     private Instrumentation instrumentation;
@@ -53,6 +70,9 @@ public class ConstructionCounter {
     }
 
     public void stopListeningForConstructions() {
+        if (instrumentation == null) {
+            throw new IllegalStateException("Need to start listening first!");
+        }
         boolean removed = instrumentation.removeTransformer(classFileTransformer);
         if (!removed) {
             throw new IllegalStateException("Could not remove transformer");
@@ -69,7 +89,7 @@ public class ConstructionCounter {
     public List<Class<?>> dependencyUsageOutsideOf(Class<?> singleton, Class<?> typeOfDependencyThatShouldNotBeLeaked) {
         List<Object> dependencyThatShouldNotBeLeaked = classDependencies.get(singleton).stream()
                 .filter(dependency -> typeOfDependencyThatShouldNotBeLeaked.isAssignableFrom(dependency.getClass()))
-                .collect(Collectors.toList());
+                .collect(toList());
         if (dependencyThatShouldNotBeLeaked.size() != 1) {
             throw new IllegalArgumentException(format("Type '%s' is not a singleton!", singleton));
         }
@@ -82,20 +102,23 @@ public class ConstructionCounter {
 
     @SuppressWarnings("unused") // Invoked by ByteBuddy
     @RuntimeType
-    public synchronized void intercept(@This Object object, @AllArguments Object[] dependencies) {
-        recordDependencies(object.getClass(), dependencies);
-        recordUsage(object.getClass(), dependencies);
-        boolean alreadySeen = !seen.add(object);
-        if (alreadySeen) {
-            return;
-        }
-        AtomicLong atomicLong = constructionCounts.putIfAbsent(object.getClass(), new AtomicLong(1));
-        if (atomicLong != null) {
-            atomicLong.incrementAndGet();
+    public void intercept(@This Object object, @AllArguments Object... dependencies) {
+        synchronized (LOCK) {
+            recordDependencies(object.getClass(), dependencies);
+            recordUsage(object.getClass(), dependencies);
+            boolean alreadySeen = !seen.add(object);
+            if (alreadySeen) {
+                return;
+            }
+            AtomicLong atomicLong = constructionCounts.putIfAbsent(object.getClass(), new AtomicLong(1));
+            if (atomicLong != null) {
+                atomicLong.incrementAndGet();
+            }
         }
     }
 
-    private void recordUsage(Class<?> aClass, Object[] dependencies) {
+    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops") // can't help it
+    private void recordUsage(Class<?> aClass, Object... dependencies) {
         for (Object dependency : dependencies) {
             List<Class<?>> classes = dependencyUsage.get(dependency);
             if (classes == null) {
@@ -106,7 +129,7 @@ public class ConstructionCounter {
         }
     }
 
-    private void recordDependencies(Class<?> aClass, Object[] dependencies) {
+    private void recordDependencies(Class<?> aClass, Object... dependencies) {
         List<Object> objects = classDependencies.get(aClass);
         if (objects == null) {
             objects = new ArrayList<>();
