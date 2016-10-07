@@ -10,4 +10,3 @@ Tool to enforce that certain classes are ony ever constructed once
     <version>1.0.0</version>
 </dependency>
 ```
-test
