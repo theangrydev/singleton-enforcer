@@ -15,11 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.theangrydev.singletonenforcer;
+package example;
 
-public class SingletonWithDependency {
+public class ClassWithLeakedDependency {
 
-    public SingletonWithDependency(LeakedDependencyInterface dependency, Object other) {
-        // nobody else should use my dependency
+    public ClassWithLeakedDependency(LeakedDependencyInterface leakedDependency) {
+
     }
 }

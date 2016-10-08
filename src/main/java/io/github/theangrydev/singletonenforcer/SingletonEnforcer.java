@@ -21,41 +21,18 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
-
 import static io.github.theangrydev.singletonenforcer.ConstructionCounter.listenForConstructions;
-import static java.lang.String.format;
 
+@SuppressWarnings("WeakerAccess") // this is part of the public API
 public final class SingletonEnforcer implements TestRule {
 
     public static final String PACKAGE_TO_ENFORCE_SYSTEM_PROPERTY = "package.to.enforce";
 
     private static final ConstructionCounter CONSTRUCTION_COUNTER = listenForConstructions();
 
-    public void checkSingletonsAreConstructedOnce(Class<?>... singletons) {
-        checkSingletonsAreConstructedOnce(Arrays.asList(singletons));
-    }
-
-    public void checkSingletonsAreConstructedOnce(List<Class<?>> singletons) {
-        Set<Class<?>> classesConstructedMoreThanOnce = CONSTRUCTION_COUNTER.classesConstructedMoreThanOnce();
-
-        List<Class<?>> notSingletons = new ArrayList<>();
-        notSingletons.addAll(singletons);
-        notSingletons.retainAll(classesConstructedMoreThanOnce);
-
-        if (!notSingletons.isEmpty()) {
-            throw new AssertionError(format("The following singletons were constructed more than once: %s", singletons));
-        }
-    }
-
-    public void checkDependencyIsNotLeaked(Class<?> singleton, Class<?> typeOfDependencyThatShouldNotBeLeaked) {
-        List<Class<?>> leakedTo = CONSTRUCTION_COUNTER.dependencyUsageOutsideOf(singleton, typeOfDependencyThatShouldNotBeLeaked);
-        if (!leakedTo.isEmpty()) {
-            throw new AssertionError(format("The dependency '%s' of '%s' was leaked to: %s", typeOfDependencyThatShouldNotBeLeaked, singleton, leakedTo));
-        }
+    public SingletonEnforcerAssertions during(Runnable execution) {
+        execution.run();
+        return new SingletonEnforcerAssertions(CONSTRUCTION_COUNTER);
     }
 
     @Override

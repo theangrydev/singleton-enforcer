@@ -15,11 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.theangrydev.singletonenforcer;
+package example;
 
-public class SomeClass {
-
-    public SomeClass() {
-        System.out.println("SomeClass = " + true);
-    }
+public class LeakedDependency implements LeakedDependencyInterface {
 }

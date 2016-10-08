@@ -17,13 +17,20 @@
  */
 package io.github.theangrydev.singletonenforcer;
 
+import org.assertj.core.api.WithAssertions;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.contrib.java.lang.system.ClearSystemProperties;
 
-public class ZSingletonEnforcerNotUsedTest {
+public class MissingPackageToEnforceTest implements WithAssertions {
+
+    @Rule
+    public final ClearSystemProperties clearPackageToEnforce = new ClearSystemProperties("package.to.enforce");
 
     @Test
-    public void another() {
-        new SomeClass();
-        System.out.println("true = " + true);
+    public void missingPackageToEnforce() {
+        assertThatThrownBy(ConstructionCounter::listenForConstructions)
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("System property 'package.to.enforce' must be set with the package to enforce!");
     }
 }

@@ -15,11 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.theangrydev.singletonenforcer;
+package example;
 
-public class Singleton {
+public class SomeClass {
 
-    public Singleton() {
-        // look at me! there should only be one of me!
+    public SomeClass() {
+        System.out.println("SomeClass = " + true);
     }
 }

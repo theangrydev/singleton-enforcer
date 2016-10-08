@@ -17,6 +17,7 @@
  */
 package io.github.theangrydev.singletonenforcer;
 
+import example.*;
 import org.assertj.core.api.WithAssertions;
 import org.junit.Rule;
 import org.junit.Test;
@@ -28,64 +29,75 @@ public class SingletonEnforcerTest implements WithAssertions {
 
     @Test
     public void doesNotFailWhenASingletonIsConstructedOnlyOnce() {
-        new Singleton();
-        singletonEnforcer.checkSingletonsAreConstructedOnce(Singleton.class);
+        singletonEnforcer.during(Singleton::new).checkSingletonsAreConstructedOnce(Singleton.class);
     }
 
     @Test
     public void doesNotFailWhenASingletonWithNestedConstructorIsConstructedOnlyOnce() {
-        new SingletonWithNestedConstructor();
-        singletonEnforcer.checkSingletonsAreConstructedOnce(SingletonWithNestedConstructor.class);
+        singletonEnforcer.during(SingletonWithNestedConstructor::new).checkSingletonsAreConstructedOnce(SingletonWithNestedConstructor.class);
     }
 
     @Test
     public void failsWhenASingletonIsConstructedMoreThanOnce() {
-        new Singleton();
-        new Singleton();
-        assertThatThrownBy(() -> singletonEnforcer.checkSingletonsAreConstructedOnce(Singleton.class))
+        assertThatThrownBy(() -> singletonEnforcer.during(() -> {
+            new Singleton();
+            new Singleton();
+        }).checkSingletonsAreConstructedOnce(Singleton.class))
                 .isInstanceOf(AssertionError.class)
-                .hasMessage("The following singletons were constructed more than once: [class io.github.theangrydev.singletonenforcer.Singleton]");
+                .hasMessage("The following singletons were constructed more than once: [class example.Singleton]");
     }
 
     @Test
     public void leakedDependenciesOnlySupportsActualDependencies() {
-        new SomeClass();
-        assertThatThrownBy(() -> singletonEnforcer.checkDependencyIsNotLeaked(SomeClass.class, LeakedDependencyInterface.class))
+        assertThatThrownBy(() -> singletonEnforcer.during(Singleton::new).checkDependencyIsNotLeaked(SomeClass.class, LeakedDependencyInterface.class))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Type 'class io.github.theangrydev.singletonenforcer.SomeClass' was not constructed with a 'interface io.github.theangrydev.singletonenforcer.LeakedDependencyInterface' at all!");
+                .hasMessage("Type 'class example.SomeClass' was not constructed with a 'interface example.LeakedDependencyInterface' at all!");
     }
 
     @Test
     public void leakedDependenciesOnlySupportsSingletons() {
-        new ClassWithLeakedDependency(new LeakedDependency());
-        new ClassWithLeakedDependency(new LeakedDependency());
-        assertThatThrownBy(() -> singletonEnforcer.checkDependencyIsNotLeaked(ClassWithLeakedDependency.class, LeakedDependencyInterface.class))
+        assertThatThrownBy(() -> singletonEnforcer.during(() -> {
+            new ClassWithLeakedDependency(new LeakedDependency());
+            new ClassWithLeakedDependency(new LeakedDependency());
+        }).checkDependencyIsNotLeaked(ClassWithLeakedDependency.class, LeakedDependencyInterface.class))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Type 'class io.github.theangrydev.singletonenforcer.ClassWithLeakedDependency' is not a singleton! (it was constructed more than once)");
+                .hasMessage("Type 'class example.ClassWithLeakedDependency' is not a singleton! (it was constructed more than once)");
     }
 
     @Test
     public void leakedDependenciesOnlySupportsSingletonsThatAreActuallyConstructed() {
-        assertThatThrownBy(() -> singletonEnforcer.checkDependencyIsNotLeaked(ClassWithLeakedDependency.class, LeakedDependencyInterface.class))
+        assertThatThrownBy(() -> singletonEnforcer.during(doNothing()).checkDependencyIsNotLeaked(ClassWithLeakedDependency.class, LeakedDependencyInterface.class))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Type 'class io.github.theangrydev.singletonenforcer.ClassWithLeakedDependency' was not constructed with a 'interface io.github.theangrydev.singletonenforcer.LeakedDependencyInterface' at all!");
+                .hasMessage("Type 'class example.ClassWithLeakedDependency' was not constructed with a 'interface example.LeakedDependencyInterface' at all!");
     }
 
     @Test
     public void failsWhenDependencyIsLeaked() {
-        LeakedDependencyInterface leakedDependency = new LeakedDependency();
-        new SingletonWithDependency(leakedDependency, new Object());
-        new ClassWithLeakedDependency(leakedDependency);
-
-        assertThatThrownBy(() -> singletonEnforcer.checkDependencyIsNotLeaked(SingletonWithDependency.class, LeakedDependencyInterface.class))
+        assertThatThrownBy(() -> singletonEnforcer.during(() -> {
+            LeakedDependencyInterface leakedDependency = new LeakedDependency();
+            new SingletonWithDependency(leakedDependency, new Object());
+            new ClassWithLeakedDependency(leakedDependency);
+        }).checkDependencyIsNotLeaked(SingletonWithDependency.class, LeakedDependencyInterface.class))
                 .isInstanceOf(AssertionError.class)
-                .hasMessage("The dependency 'interface io.github.theangrydev.singletonenforcer.LeakedDependencyInterface' of 'class io.github.theangrydev.singletonenforcer.SingletonWithDependency' was leaked to: [class io.github.theangrydev.singletonenforcer.ClassWithLeakedDependency]");
+                .hasMessage("The dependency 'interface example.LeakedDependencyInterface' of 'class example.SingletonWithDependency' was leaked to: [class example.ClassWithLeakedDependency]");
     }
 
     @Test
     public void succeedsWhenDependencyIsNotLeaked() {
-        new SingletonWithDependency(new LeakedDependency(), new Object());
+        singletonEnforcer.during(() -> {
+            new SingletonWithDependency(new LeakedDependency(), new Object());
+        }).checkDependencyIsNotLeaked(SingletonWithDependency.class, LeakedDependencyInterface.class);
+    }
 
-        singletonEnforcer.checkDependencyIsNotLeaked(SingletonWithDependency.class, LeakedDependencyInterface.class);
+    @Test
+    public void shouldNotAllowInstrumentedClassesToBeUsedOutsideOfTheFramework() {
+        assertThatThrownBy(SomeClass::new)
+                .hasMessage("Instrumented class 'class example.SomeClass' was constructed outside of the SingletonEnforcer! " +
+                        "You should use SingletonEnforcer.during to exercise the code you want to assert on. " +
+                        "Make sure that you run SingletonEnforcer in a separate JVM so that instrumented classes are only used by SingletonEnforcer!");
+    }
+
+    private Runnable doNothing() {
+        return () -> {};
     }
 }

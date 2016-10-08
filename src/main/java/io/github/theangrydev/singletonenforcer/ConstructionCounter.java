@@ -39,19 +39,35 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static net.bytebuddy.matcher.ElementMatchers.*;
 
-@SuppressWarnings("PMD.UseConcurrentHashMap") // intentionally using a single global lock
-public class ConstructionCounter {
+@SuppressWarnings({
+    "PMD.UseConcurrentHashMap", // intentionally using a single global lock
+    "WeakerAccess", // used by ByteBuddy; must be public
+    "PMD.TooManyMethods" // TODO: see what can be refactored
+})
+public class ConstructionCounter extends SecurityManager {
 
     private static final Object LOCK = new Object();
 
     private final Map<Class<?>, List<Object>> classDependencies = new HashMap<>();
     private final Map<Object, List<Class<?>>> dependencyUsage = new HashMap<>();
 
-    private final Set<Object> seen =  new HashSet<>();
+    private final Set<Object> seen = new HashSet<>();
     private final Map<Class<?>, AtomicLong> constructionCounts = new HashMap<>();
 
-    public static ConstructionCounter listenForConstructions() {
+    static ConstructionCounter listenForConstructions() {
         Instrumentation instrumentation = ByteBuddyAgent.install();
+
+        List<Class> alreadyLoaded = Arrays.stream(instrumentation.getAllLoadedClasses())
+                .filter(aClass -> !aClass.isSynthetic())
+                .filter(aClass -> !aClass.isInterface())
+                .filter(aClass -> startsWith(packageToEnforce(), aClass))
+                .collect(toList());
+
+        if (!alreadyLoaded.isEmpty()) {
+            throw new IllegalStateException(format("Found some already loaded classes in the package to enforce '%s'. " +
+                    "SingletonEnforcer must be run in a separate JVM and must be constructed before any classes in that package are loaded! " +
+                    "Already loaded classes:%n%s", packageToEnforce(), alreadyLoaded));
+        }
 
         Junction<TypeDescription> typeConditions = not(isInterface()).and(not(isSynthetic())).and(nameStartsWith(packageToEnforce()));
         Junction<MethodDescription> constructorConditions = not(isBridge()).and(not(isSynthetic()));
@@ -66,12 +82,25 @@ public class ConstructionCounter {
         return constructionCounter;
     }
 
+    private static boolean startsWith(String packageToEnforce, Class<?> aClass) {
+        Package aPackage = aClass.getPackage();
+        return aPackage != null && (packageIsEqualTo(packageToEnforce, aPackage) || packageIsSubPackageOf(packageToEnforce, aPackage));
+    }
+
+    private static boolean packageIsSubPackageOf(String packageToEnforce, Package aPackage) {
+        return aPackage.getName().matches(packageToEnforce + "\\..*");
+    }
+
+    private static boolean packageIsEqualTo(String packageToEnforce, Package aPackage) {
+        return aPackage.getName().equals(packageToEnforce);
+    }
+
     private static String packageToEnforce() {
         return Optional.ofNullable(System.getProperty(PACKAGE_TO_ENFORCE_SYSTEM_PROPERTY))
                 .orElseThrow(() -> new IllegalArgumentException(format("System property '%s' must be set with the package to enforce!", PACKAGE_TO_ENFORCE_SYSTEM_PROPERTY)));
     }
 
-    public void reset() {
+    void reset() {
         synchronized (LOCK) {
             classDependencies.clear();
             dependencyUsage.clear();
@@ -80,14 +109,14 @@ public class ConstructionCounter {
         }
     }
 
-    public Set<Class<?>> classesConstructedMoreThanOnce() {
+    Set<Class<?>> classesConstructedMoreThanOnce() {
         return constructionCounts.entrySet().stream()
                 .filter(entry -> entry.getValue().longValue() > 1)
                 .map(Map.Entry::getKey)
                 .collect(toSet());
     }
 
-    public List<Class<?>> dependencyUsageOutsideOf(Class<?> singleton, Class<?> typeOfDependencyThatShouldNotBeLeaked) {
+    List<Class<?>> dependencyUsageOutsideOf(Class<?> singleton, Class<?> typeOfDependencyThatShouldNotBeLeaked) {
         List<Object> dependencyThatShouldNotBeLeaked = classDependencies.getOrDefault(singleton, emptyList()).stream()
                 .filter(dependency -> typeOfDependencyThatShouldNotBeLeaked.isAssignableFrom(dependency.getClass()))
                 .collect(toList());
@@ -104,9 +133,14 @@ public class ConstructionCounter {
         return usages.stream().filter(aClass -> !aClass.equals(target)).collect(toList());
     }
 
-    @SuppressWarnings("unused") // Invoked by ByteBuddy
+    @SuppressWarnings({"unused", "WeakerAccess"}) // used by ByteBuddy; must be public
     @RuntimeType
     public void intercept(@This Object object, @AllArguments Object... dependencies) {
+        if (!calledBySingletonEnforcer()) {
+            throw new IllegalStateException(format("Instrumented class '%s' was constructed outside of the SingletonEnforcer! " +
+                    "You should use SingletonEnforcer.during to exercise the code you want to assert on. " +
+                    "Make sure that you run SingletonEnforcer in a separate JVM so that instrumented classes are only used by SingletonEnforcer!", object.getClass()));
+        }
         synchronized (LOCK) {
             recordDependencies(object.getClass(), dependencies);
             recordUsage(object.getClass(), dependencies);
@@ -119,6 +153,10 @@ public class ConstructionCounter {
                 atomicLong.incrementAndGet();
             }
         }
+    }
+
+    private boolean calledBySingletonEnforcer() {
+        return Arrays.stream(getClassContext()).filter(aClass -> aClass.equals(SingletonEnforcer.class)).count() > 0;
     }
 
     @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops") // can't help it

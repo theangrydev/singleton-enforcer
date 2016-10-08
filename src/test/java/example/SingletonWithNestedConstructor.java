@@ -15,7 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.theangrydev.singletonenforcer;
+package example;
 
-public interface LeakedDependencyInterface {
+public class SingletonWithNestedConstructor {
+    private final String thing;
+
+    public SingletonWithNestedConstructor() {
+        this("thing");
+    }
+
+    private SingletonWithNestedConstructor(String thing)  {
+        this.thing = thing;
+    }
 }
