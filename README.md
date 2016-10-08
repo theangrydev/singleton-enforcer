@@ -11,7 +11,7 @@ Tool to enforce that certain classes are ony ever constructed once
 <dependency>
     <groupId>io.github.theangrydev</groupId>
     <artifactId>singleton-enforcer</artifactId>
-    <version>2.0.0</version>
+    <version>2.0.1</version>
 </dependency>
 ```
 
