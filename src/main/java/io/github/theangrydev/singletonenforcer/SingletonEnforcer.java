@@ -28,7 +28,6 @@ import java.util.Set;
 
 import static io.github.theangrydev.singletonenforcer.ConstructionCounter.listenForConstructions;
 import static java.lang.String.format;
-import static org.junit.Assert.fail;
 
 public final class SingletonEnforcer implements TestRule {
 
