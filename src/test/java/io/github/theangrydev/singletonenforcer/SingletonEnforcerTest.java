@@ -30,6 +30,12 @@ public class SingletonEnforcerTest implements WithAssertions {
     public SingletonEnforcer singletonEnforcer = enforcePackage("example");
 
     @Test
+    public void exceptionDuring() {
+        IllegalStateException exception = new IllegalStateException("hi");
+        assertThatThrownBy(() -> singletonEnforcer.during(() -> {throw exception;})).isEqualTo(exception);
+    }
+
+    @Test
     public void nullPackageToEnforce() {
         assertThatThrownBy(() -> enforcePackage(null)).hasMessage("Package to enforce must be provided!");
     }
