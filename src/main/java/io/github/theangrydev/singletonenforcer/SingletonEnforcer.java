@@ -21,23 +21,43 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
-import static io.github.theangrydev.singletonenforcer.ConstructionCounter.listenForConstructions;
+import static java.lang.String.format;
 
 @SuppressWarnings("WeakerAccess") // this is part of the public API
 public final class SingletonEnforcer implements TestRule {
 
-    public static final String PACKAGE_TO_ENFORCE_SYSTEM_PROPERTY = "package.to.enforce";
+    private static SingletonEnforcer instance;
 
-    private static final ConstructionCounter CONSTRUCTION_COUNTER = listenForConstructions();
+    private final String packageToEnforce;
+    private final ConstructionCounter constructionCounter;
+
+    private SingletonEnforcer(String packageToEnforce, ConstructionCounter constructionCounter) {
+        this.packageToEnforce = packageToEnforce;
+        this.constructionCounter = constructionCounter;
+    }
+
+    public static SingletonEnforcer enforcePackage(String packageToEnforce) {
+        if (packageToEnforce == null || packageToEnforce.trim().isEmpty()) {
+            throw new IllegalArgumentException("Package to enforce must be provided!");
+        }
+        synchronized (SingletonEnforcer.class) {
+            if (instance == null) {
+                instance = new SingletonEnforcer(packageToEnforce, ConstructionCounter.listenForConstructions(packageToEnforce));
+            } else if (!packageToEnforce.equals(instance.packageToEnforce)) {
+                throw new IllegalArgumentException(format("SingletonEnforcer can only enforce one package per JVM. The package currently instrumented is '%s' which is different from the given package '%s'", instance.packageToEnforce, packageToEnforce));
+            }
+            return instance;
+        }
+    }
 
     public SingletonEnforcerAssertions during(Runnable execution) {
         execution.run();
-        return new SingletonEnforcerAssertions(CONSTRUCTION_COUNTER);
+        return new SingletonEnforcerAssertions(constructionCounter);
     }
 
     @Override
     public Statement apply(Statement statement, Description description) {
-        CONSTRUCTION_COUNTER.reset();
+        constructionCounter.reset();
         return statement;
     }
 }

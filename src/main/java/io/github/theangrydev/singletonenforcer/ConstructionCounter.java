@@ -32,7 +32,6 @@ import java.lang.instrument.Instrumentation;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static io.github.theangrydev.singletonenforcer.SingletonEnforcer.PACKAGE_TO_ENFORCE_SYSTEM_PROPERTY;
 import static java.lang.String.format;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
@@ -54,22 +53,22 @@ public class ConstructionCounter extends SecurityManager {
     private final Set<Object> seen = new HashSet<>();
     private final Map<Class<?>, AtomicLong> constructionCounts = new HashMap<>();
 
-    static ConstructionCounter listenForConstructions() {
+    static ConstructionCounter listenForConstructions(String packageToEnforce) {
         Instrumentation instrumentation = ByteBuddyAgent.install();
 
         List<Class> alreadyLoaded = Arrays.stream(instrumentation.getAllLoadedClasses())
                 .filter(aClass -> !aClass.isSynthetic())
                 .filter(aClass -> !aClass.isInterface())
-                .filter(aClass -> startsWith(packageToEnforce(), aClass))
+                .filter(aClass -> startsWith(packageToEnforce, aClass))
                 .collect(toList());
 
         if (!alreadyLoaded.isEmpty()) {
             throw new IllegalStateException(format("Found some already loaded classes in the package to enforce '%s'. " +
                     "SingletonEnforcer must be run in a separate JVM and must be constructed before any classes in that package are loaded! " +
-                    "Already loaded classes:%n%s", packageToEnforce(), alreadyLoaded));
+                    "Already loaded classes:%n%s", packageToEnforce, alreadyLoaded));
         }
 
-        Junction<TypeDescription> typeConditions = not(isInterface()).and(not(isSynthetic())).and(nameStartsWith(packageToEnforce()));
+        Junction<TypeDescription> typeConditions = not(isInterface()).and(not(isSynthetic())).and(nameStartsWith(packageToEnforce));
         Junction<MethodDescription> constructorConditions = not(isBridge()).and(not(isSynthetic()));
 
         ConstructionCounter constructionCounter = new ConstructionCounter();
@@ -93,11 +92,6 @@ public class ConstructionCounter extends SecurityManager {
 
     private static boolean packageIsEqualTo(String packageToEnforce, Package aPackage) {
         return aPackage.getName().equals(packageToEnforce);
-    }
-
-    private static String packageToEnforce() {
-        return Optional.ofNullable(System.getProperty(PACKAGE_TO_ENFORCE_SYSTEM_PROPERTY))
-                .orElseThrow(() -> new IllegalArgumentException(format("System property '%s' must be set with the package to enforce!", PACKAGE_TO_ENFORCE_SYSTEM_PROPERTY)));
     }
 
     void reset() {

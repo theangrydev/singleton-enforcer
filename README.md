@@ -17,11 +17,10 @@ Tool to enforce that certain classes are ony ever constructed once
 
 ## Releases
 
-### 2.0.0
+### 2.0.1
 * Turned `SingletonEnforcer` into a JUnit `@Rule`
 * Added a method `SingletonEnforcer.during` that takes a `Runnable` that should execute some code that the assertions will be made about
-* This release requires a new system property `package.to.enforce` to be set. This is needed as a system property because `SingletonEnforcer` is implemented as a static singleton, since the instrumentation must take place only once per JVM
-* Added a checks to make sure that the classes in the `package.to.enforce` are instrumented before use
+* Added a checks to make sure that the classes in the package to enforce are instrumented before use
 * Added a check to make sure that instrumented classes are not used outside of `SingletonEnforcer.during`
 
 ### 1.0.1

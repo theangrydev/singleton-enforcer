@@ -22,10 +22,22 @@ import org.assertj.core.api.WithAssertions;
 import org.junit.Rule;
 import org.junit.Test;
 
+import static io.github.theangrydev.singletonenforcer.SingletonEnforcer.enforcePackage;
+
 public class SingletonEnforcerTest implements WithAssertions {
 
     @Rule
-    public SingletonEnforcer singletonEnforcer = new SingletonEnforcer();
+    public SingletonEnforcer singletonEnforcer = enforcePackage("example");
+
+    @Test
+    public void nullPackageToEnforce() {
+        assertThatThrownBy(() -> enforcePackage(null)).hasMessage("Package to enforce must be provided!");
+    }
+
+    @Test
+    public void blankPackageToEnforce() {
+        assertThatThrownBy(() -> enforcePackage("  ")).hasMessage("Package to enforce must be provided!");
+    }
 
     @Test
     public void doesNotFailWhenASingletonIsConstructedOnlyOnce() {
