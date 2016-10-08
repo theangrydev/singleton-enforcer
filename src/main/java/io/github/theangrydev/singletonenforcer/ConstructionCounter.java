@@ -33,25 +33,30 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static java.lang.String.format;
-import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toSet;
 import static net.bytebuddy.matcher.ElementMatchers.*;
 
+/**
+ * This class is not part of the public API.
+ * <p>
+ * This is the class that counts all the constructions it sees up by instrumenting all classes in the target package.
+ */
 @SuppressWarnings({
-    "PMD.UseConcurrentHashMap", // intentionally using a single global lock
-    "WeakerAccess", // used by ByteBuddy; must be public
-    "PMD.TooManyMethods" // TODO: see what can be refactored
+        "PMD.UseConcurrentHashMap", // intentionally using a single global lock
+        "WeakerAccess", // used by ByteBuddy; must be public
+        "PMD.TooManyMethods" // TODO: see what can be refactored
 })
 public class ConstructionCounter extends SecurityManager {
-
-    private static final Object LOCK = new Object();
 
     private final Map<Class<?>, List<Object>> classDependencies = new HashMap<>();
     private final Map<Object, List<Class<?>>> dependencyUsage = new HashMap<>();
 
     private final Set<Object> seen = new HashSet<>();
     private final Map<Class<?>, AtomicLong> constructionCounts = new HashMap<>();
+
+    private ConstructionCounter() {
+        // should only be constructed via the static factory method
+    }
 
     static ConstructionCounter listenForConstructions(String packageToEnforce) {
         Instrumentation instrumentation = ByteBuddyAgent.install();
@@ -95,7 +100,7 @@ public class ConstructionCounter extends SecurityManager {
     }
 
     void reset() {
-        synchronized (LOCK) {
+        synchronized (ConstructionCounter.class) {
             classDependencies.clear();
             dependencyUsage.clear();
             constructionCounts.clear();
@@ -103,30 +108,18 @@ public class ConstructionCounter extends SecurityManager {
         }
     }
 
-    Set<Class<?>> classesConstructedMoreThanOnce() {
-        return constructionCounts.entrySet().stream()
-                .filter(entry -> entry.getValue().longValue() > 1)
-                .map(Map.Entry::getKey)
-                .collect(toSet());
+    ConstructionCounts snapshot() {
+        return new ConstructionCounts(new HashMap<>(classDependencies), new HashMap<>(dependencyUsage), new HashMap<>(constructionCounts));
     }
 
-    List<Class<?>> dependencyUsageOutsideOf(Class<?> singleton, Class<?> typeOfDependencyThatShouldNotBeLeaked) {
-        List<Object> dependencyThatShouldNotBeLeaked = classDependencies.getOrDefault(singleton, emptyList()).stream()
-                .filter(dependency -> typeOfDependencyThatShouldNotBeLeaked.isAssignableFrom(dependency.getClass()))
-                .collect(toList());
-        if (dependencyThatShouldNotBeLeaked.isEmpty()) {
-            throw new IllegalArgumentException(format("Type '%s' was not constructed with a '%s' at all!", singleton, typeOfDependencyThatShouldNotBeLeaked));
-        }
-        if (dependencyThatShouldNotBeLeaked.size() > 1) {
-            throw new IllegalArgumentException(format("Type '%s' is not a singleton! (it was constructed more than once)", singleton));
-        }
-        return usagesThatAreNotBy(singleton, dependencyUsage.get(dependencyThatShouldNotBeLeaked.get(0)));
-    }
-
-    private List<Class<?>> usagesThatAreNotBy(Class<?> target, List<Class<?>> usages) {
-        return usages.stream().filter(aClass -> !aClass.equals(target)).collect(toList());
-    }
-
+    /**
+     * This class is not part of the public API.
+     * <p>
+     * This is the instrumentation method that captures all constructor calls.
+     *
+     * @param object       The "this" object
+     * @param dependencies The arguments passed to the constructor
+     */
     @SuppressWarnings({"unused", "WeakerAccess"}) // used by ByteBuddy; must be public
     @RuntimeType
     public void intercept(@This Object object, @AllArguments Object... dependencies) {
@@ -135,7 +128,7 @@ public class ConstructionCounter extends SecurityManager {
                     "You should use SingletonEnforcer.during to exercise the code you want to assert on. " +
                     "Make sure that you run SingletonEnforcer in a separate JVM so that instrumented classes are only used by SingletonEnforcer!", object.getClass()));
         }
-        synchronized (LOCK) {
+        synchronized (ConstructionCounter.class) {
             recordDependencies(object.getClass(), dependencies);
             recordUsage(object.getClass(), dependencies);
             boolean alreadySeen = !seen.add(object);

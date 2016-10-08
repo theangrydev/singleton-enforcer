@@ -23,6 +23,9 @@ import org.junit.runners.model.Statement;
 
 import static java.lang.String.format;
 
+/**
+ * This is the JUnit {@link org.junit.Rule}.
+ */
 @SuppressWarnings("WeakerAccess") // this is part of the public API
 public final class SingletonEnforcer implements TestRule {
 
@@ -36,6 +39,12 @@ public final class SingletonEnforcer implements TestRule {
         this.constructionCounter = constructionCounter;
     }
 
+    /**
+     * Factory method for {@link SingletonEnforcer}.
+     *
+     * @param packageToEnforce The package that contains the classes that assertions will be made about
+     * @return The {@link SingletonEnforcer} to use in a JUnit {@link org.junit.Rule}
+     */
     public static SingletonEnforcer enforcePackage(String packageToEnforce) {
         if (packageToEnforce == null || packageToEnforce.trim().isEmpty()) {
             throw new IllegalArgumentException("Package to enforce must be provided!");
@@ -50,14 +59,20 @@ public final class SingletonEnforcer implements TestRule {
         }
     }
 
-    public SingletonEnforcerAssertions during(Runnable execution) {
-        execution.run();
-        return new SingletonEnforcerAssertions(constructionCounter);
+    /**
+     * @param execution A {@link Runnable} that will, once executed, exercise all the classes that will be asserted about
+     * @return A {@link ConstructionCountAssertions} that can assert on the construction counts that were observed
+     */
+    public ConstructionCountAssertions during(Runnable execution) {
+        synchronized (SingletonEnforcer.class) {
+            constructionCounter.reset();
+            execution.run();
+            return new ConstructionCountAssertions(constructionCounter.snapshot());
+        }
     }
 
     @Override
     public Statement apply(Statement statement, Description description) {
-        constructionCounter.reset();
         return statement;
     }
 }

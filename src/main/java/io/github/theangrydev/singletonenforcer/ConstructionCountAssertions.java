@@ -24,20 +24,33 @@ import java.util.Set;
 
 import static java.lang.String.format;
 
+/**
+ * Assertions about the construction counts that were captured during {@link SingletonEnforcer#during(Runnable)}.
+ */
 @SuppressWarnings("WeakerAccess") // this is part of the public API
-public class SingletonEnforcerAssertions {
-    private final ConstructionCounter constructionCounter;
+public class ConstructionCountAssertions {
+    private final ConstructionCounts constructionCounts;
 
-    public SingletonEnforcerAssertions(ConstructionCounter constructionCounter) {
-        this.constructionCounter = constructionCounter;
+    ConstructionCountAssertions(ConstructionCounts constructionCounts) {
+        this.constructionCounts = constructionCounts;
     }
 
+    /**
+     * Checks that the given classes were only constructed once.
+     *
+     * @param singletons The classes to check
+     */
     public void checkSingletonsAreConstructedOnce(Class<?>... singletons) {
         checkSingletonsAreConstructedOnce(Arrays.asList(singletons));
     }
 
+    /**
+     * Checks that the given classes were only constructed once.
+     *
+     * @param singletons The classes to check
+     */
     public void checkSingletonsAreConstructedOnce(List<Class<?>> singletons) {
-        Set<Class<?>> classesConstructedMoreThanOnce = constructionCounter.classesConstructedMoreThanOnce();
+        Set<Class<?>> classesConstructedMoreThanOnce = constructionCounts.classesConstructedMoreThanOnce();
 
         List<Class<?>> notSingletons = new ArrayList<>();
         notSingletons.addAll(singletons);
@@ -48,8 +61,15 @@ public class SingletonEnforcerAssertions {
         }
     }
 
+    /**
+     * Checks that a constructor dependency of the given singleton class is not "leaked" and passed into the
+     * constructor of any other classes.
+     *
+     * @param singleton                             The class of the singleton to check
+     * @param typeOfDependencyThatShouldNotBeLeaked The type of the dependency that is passed into the singleton
+     */
     public void checkDependencyIsNotLeaked(Class<?> singleton, Class<?> typeOfDependencyThatShouldNotBeLeaked) {
-        List<Class<?>> leakedTo = constructionCounter.dependencyUsageOutsideOf(singleton, typeOfDependencyThatShouldNotBeLeaked);
+        List<Class<?>> leakedTo = constructionCounts.dependencyUsageOutsideOf(singleton, typeOfDependencyThatShouldNotBeLeaked);
         if (!leakedTo.isEmpty()) {
             throw new AssertionError(format("The dependency '%s' of '%s' was leaked to: %s", typeOfDependencyThatShouldNotBeLeaked, singleton, leakedTo));
         }
