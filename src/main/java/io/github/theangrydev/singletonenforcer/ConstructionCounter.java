@@ -71,10 +71,12 @@ public class ConstructionCounter {
     }
 
     public void reset() {
-        classDependencies.clear();
-        dependencyUsage.clear();
-        constructionCounts.clear();
-        seen.clear();
+        synchronized (LOCK) {
+            classDependencies.clear();
+            dependencyUsage.clear();
+            constructionCounts.clear();
+            seen.clear();
+        }
     }
 
     public Set<Class<?>> classesConstructedMoreThanOnce() {
