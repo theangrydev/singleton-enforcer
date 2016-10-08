@@ -81,4 +81,11 @@ public class SingletonEnforcerTest implements WithAssertions {
                 .isInstanceOf(AssertionError.class)
                 .hasMessage("The dependency 'interface io.github.theangrydev.singletonenforcer.LeakedDependencyInterface' of 'class io.github.theangrydev.singletonenforcer.SingletonWithDependency' was leaked to: [class io.github.theangrydev.singletonenforcer.ClassWithLeakedDependency]");
     }
+
+    @Test
+    public void succeedsWhenDependencyIsNotLeaked() {
+        new SingletonWithDependency(new LeakedDependency(), new Object());
+
+        singletonEnforcer.checkDependencyIsNotLeaked(SingletonWithDependency.class, LeakedDependencyInterface.class);
+    }
 }
