@@ -28,11 +28,11 @@ import net.bytebuddy.implementation.bind.annotation.RuntimeType;
 import net.bytebuddy.implementation.bind.annotation.This;
 import net.bytebuddy.matcher.ElementMatcher.Junction;
 
-import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.Instrumentation;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static io.github.theangrydev.singletonenforcer.SingletonEnforcer.PACKAGE_TO_ENFORCE_SYSTEM_PROPERTY;
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
@@ -43,40 +43,38 @@ public class ConstructionCounter {
 
     private static final Object LOCK = new Object();
 
-    private final String packageToCover;
-
     private final Map<Class<?>, List<Object>> classDependencies = new HashMap<>();
     private final Map<Object, List<Class<?>>> dependencyUsage = new HashMap<>();
 
     private final Set<Object> seen =  new HashSet<>();
     private final Map<Class<?>, AtomicLong> constructionCounts = new HashMap<>();
 
-    private ClassFileTransformer classFileTransformer;
-    private Instrumentation instrumentation;
+    public static ConstructionCounter listenForConstructions() {
+        Instrumentation instrumentation = ByteBuddyAgent.install();
 
-    public ConstructionCounter(String packageToCover) {
-        this.packageToCover = packageToCover;
-    }
-
-    public void listenForConstructions() {
-        Junction<TypeDescription> typeConditions = not(isInterface()).and(not(isSynthetic())).and(nameStartsWith(packageToCover));
+        Junction<TypeDescription> typeConditions = not(isInterface()).and(not(isSynthetic())).and(nameStartsWith(packageToEnforce()));
         Junction<MethodDescription> constructorConditions = not(isBridge()).and(not(isSynthetic()));
 
-        instrumentation = ByteBuddyAgent.install();
-        classFileTransformer = new AgentBuilder.Default().type(typeConditions).transform((builder, typeDescription, classLoader) -> builder
+        ConstructionCounter constructionCounter = new ConstructionCounter();
+
+        new AgentBuilder.Default().type(typeConditions).transform((builder, typeDescription, classLoader) -> builder
                 .constructor(constructorConditions)
-                .intercept(SuperMethodCall.INSTANCE.andThen(MethodDelegation.to(this))))
+                .intercept(SuperMethodCall.INSTANCE.andThen(MethodDelegation.to(constructionCounter))))
                 .installOn(instrumentation);
+
+        return constructionCounter;
     }
 
-    public void stopListeningForConstructions() {
-        if (instrumentation == null) {
-            throw new IllegalStateException("Need to start listening first!");
-        }
-        boolean removed = instrumentation.removeTransformer(classFileTransformer);
-        if (!removed) {
-            throw new IllegalStateException("Could not remove transformer");
-        }
+    private static String packageToEnforce() {
+        return Optional.ofNullable(System.getProperty(PACKAGE_TO_ENFORCE_SYSTEM_PROPERTY))
+                .orElseThrow(() -> new IllegalArgumentException(format("System property '%s' must be set with the package to enforce!", PACKAGE_TO_ENFORCE_SYSTEM_PROPERTY)));
+    }
+
+    public void reset() {
+        classDependencies.clear();
+        dependencyUsage.clear();
+        constructionCounts.clear();
+        seen.clear();
     }
 
     public Set<Class<?>> classesConstructedMoreThanOnce() {

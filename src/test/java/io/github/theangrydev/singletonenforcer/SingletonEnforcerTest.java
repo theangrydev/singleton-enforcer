@@ -18,23 +18,13 @@
 package io.github.theangrydev.singletonenforcer;
 
 import org.assertj.core.api.WithAssertions;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class SingletonEnforcerTest implements WithAssertions {
 
-    private SingletonEnforcer singletonEnforcer = new SingletonEnforcer("io.github.theangrydev.singletonenforcer");
-
-    @Before
-    public void setUp() {
-        singletonEnforcer.setUp();
-    }
-
-    @After
-    public void tearDown() {
-        singletonEnforcer.tearDown();
-    }
+    @Rule
+    public SingletonEnforcer singletonEnforcer = new SingletonEnforcer();
 
     @Test
     public void doesNotFailWhenASingletonIsConstructedOnlyOnce() {

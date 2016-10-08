@@ -17,36 +17,31 @@
  */
 package io.github.theangrydev.singletonenforcer;
 
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
+import org.junit.runners.model.Statement;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
+import static io.github.theangrydev.singletonenforcer.ConstructionCounter.listenForConstructions;
 import static java.lang.String.format;
 import static org.junit.Assert.fail;
 
-public class SingletonEnforcer {
+public final class SingletonEnforcer implements TestRule {
 
-    private final ConstructionCounter constructionCounter;
+    public static final String PACKAGE_TO_ENFORCE_SYSTEM_PROPERTY = "package.to.enforce";
 
-    public SingletonEnforcer(String packageToCover) {
-        constructionCounter = new ConstructionCounter(packageToCover);
-    }
-
-    public void setUp() {
-        constructionCounter.listenForConstructions();
-    }
-
-    public void tearDown() {
-        constructionCounter.stopListeningForConstructions();
-    }
+    private static final ConstructionCounter CONSTRUCTION_COUNTER = listenForConstructions();
 
     public void checkSingletonsAreConstructedOnce(Class<?>... singletons) {
         checkSingletonsAreConstructedOnce(Arrays.asList(singletons));
     }
 
     public void checkSingletonsAreConstructedOnce(List<Class<?>> singletons) {
-        Set<Class<?>> classesConstructedMoreThanOnce = constructionCounter.classesConstructedMoreThanOnce();
+        Set<Class<?>> classesConstructedMoreThanOnce = CONSTRUCTION_COUNTER.classesConstructedMoreThanOnce();
 
         List<Class<?>> notSingletons = new ArrayList<>();
         notSingletons.addAll(singletons);
@@ -58,9 +53,15 @@ public class SingletonEnforcer {
     }
 
     public void checkDependencyIsNotLeaked(Class<?> singleton, Class<?> typeOfDependencyThatShouldNotBeLeaked) {
-        List<Class<?>> leakedTo = constructionCounter.dependencyUsageOutsideOf(singleton, typeOfDependencyThatShouldNotBeLeaked);
+        List<Class<?>> leakedTo = CONSTRUCTION_COUNTER.dependencyUsageOutsideOf(singleton, typeOfDependencyThatShouldNotBeLeaked);
         if (!leakedTo.isEmpty()) {
             fail(format("The dependency '%s' of '%s' was leaked to: %s", typeOfDependencyThatShouldNotBeLeaked, singleton, leakedTo));
         }
+    }
+
+    @Override
+    public Statement apply(Statement statement, Description description) {
+        CONSTRUCTION_COUNTER.reset();
+        return statement;
     }
 }
