@@ -34,6 +34,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static io.github.theangrydev.singletonenforcer.SingletonEnforcer.PACKAGE_TO_ENFORCE_SYSTEM_PROPERTY;
 import static java.lang.String.format;
+import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static net.bytebuddy.matcher.ElementMatchers.*;
@@ -87,11 +88,7 @@ public class ConstructionCounter {
     }
 
     public List<Class<?>> dependencyUsageOutsideOf(Class<?> singleton, Class<?> typeOfDependencyThatShouldNotBeLeaked) {
-        List<Object> dependencies = classDependencies.get(singleton);
-        if (dependencies == null || dependencies.isEmpty()) {
-            throw new IllegalArgumentException(format("Type '%s' was not constructed with a '%s' at all!", singleton, typeOfDependencyThatShouldNotBeLeaked));
-        }
-        List<Object> dependencyThatShouldNotBeLeaked = dependencies.stream()
+        List<Object> dependencyThatShouldNotBeLeaked = classDependencies.getOrDefault(singleton, emptyList()).stream()
                 .filter(dependency -> typeOfDependencyThatShouldNotBeLeaked.isAssignableFrom(dependency.getClass()))
                 .collect(toList());
         if (dependencyThatShouldNotBeLeaked.isEmpty()) {
