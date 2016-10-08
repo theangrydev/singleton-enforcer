@@ -88,8 +88,8 @@ public class ConstructionCounter {
 
     public List<Class<?>> dependencyUsageOutsideOf(Class<?> singleton, Class<?> typeOfDependencyThatShouldNotBeLeaked) {
         List<Object> dependencies = classDependencies.get(singleton);
-        if (dependencies == null || classDependencies.isEmpty()) {
-            throw new IllegalStateException(format("Did not see any '%s' constructions at all!", singleton));
+        if (dependencies == null || dependencies.isEmpty()) {
+            throw new IllegalArgumentException(format("Type '%s' was not constructed with a '%s' at all!", singleton, typeOfDependencyThatShouldNotBeLeaked));
         }
         List<Object> dependencyThatShouldNotBeLeaked = dependencies.stream()
                 .filter(dependency -> typeOfDependencyThatShouldNotBeLeaked.isAssignableFrom(dependency.getClass()))

@@ -67,8 +67,8 @@ public class SingletonEnforcerTest implements WithAssertions {
     @Test
     public void leakedDependenciesOnlySupportsSingletonsThatAreActuallyConstructed() {
         assertThatThrownBy(() -> singletonEnforcer.checkDependencyIsNotLeaked(ClassWithLeakedDependency.class, LeakedDependencyInterface.class))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("Did not see any 'class io.github.theangrydev.singletonenforcer.ClassWithLeakedDependency' constructions at all!");
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Type 'class io.github.theangrydev.singletonenforcer.ClassWithLeakedDependency' was not constructed with a 'interface io.github.theangrydev.singletonenforcer.LeakedDependencyInterface' at all!");
     }
 
     @Test
