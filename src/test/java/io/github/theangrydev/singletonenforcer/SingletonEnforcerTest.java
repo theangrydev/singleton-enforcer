@@ -40,6 +40,11 @@ public class SingletonEnforcerTest implements WithAssertions {
     }
 
     @Test
+    public void canOnlyEnforceOnePackage() {
+        assertThatThrownBy(() -> enforcePackage("blah")).hasMessage("SingletonEnforcer can only enforce one package per JVM. The package currently instrumented is 'example' which is different from the given package 'blah'");
+    }
+
+    @Test
     public void doesNotFailWhenASingletonIsConstructedOnlyOnce() {
         singletonEnforcer.during(Singleton::new).checkSingletonsAreConstructedOnce(Singleton.class);
     }
