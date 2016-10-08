@@ -48,14 +48,14 @@ public final class SingletonEnforcer implements TestRule {
         notSingletons.retainAll(classesConstructedMoreThanOnce);
 
         if (!notSingletons.isEmpty()) {
-            fail(format("The following singletons were constructed more than once: %s", singletons));
+            throw new AssertionError(format("The following singletons were constructed more than once: %s", singletons));
         }
     }
 
     public void checkDependencyIsNotLeaked(Class<?> singleton, Class<?> typeOfDependencyThatShouldNotBeLeaked) {
         List<Class<?>> leakedTo = CONSTRUCTION_COUNTER.dependencyUsageOutsideOf(singleton, typeOfDependencyThatShouldNotBeLeaked);
         if (!leakedTo.isEmpty()) {
-            fail(format("The dependency '%s' of '%s' was leaked to: %s", typeOfDependencyThatShouldNotBeLeaked, singleton, leakedTo));
+            throw new AssertionError(format("The dependency '%s' of '%s' was leaked to: %s", typeOfDependencyThatShouldNotBeLeaked, singleton, leakedTo));
         }
     }
 
