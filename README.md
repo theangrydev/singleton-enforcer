@@ -33,6 +33,7 @@ public class ExampleTest {
 }
 ```
 
+Dependency:
 ```xml
 <dependency>
     <groupId>io.github.theangrydev</groupId>
