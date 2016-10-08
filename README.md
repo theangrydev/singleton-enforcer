@@ -11,11 +11,14 @@ Tool to enforce that certain classes are ony ever constructed once
 <dependency>
     <groupId>io.github.theangrydev</groupId>
     <artifactId>singleton-enforcer</artifactId>
-    <version>2.0.1</version>
+    <version>2.1.0</version>
 </dependency>
 ```
 
 ## Releases
+### 2.1.0
+* Made the public API thread safe
+* Added documentation for the public API
 
 ### 2.0.1
 * Turned `SingletonEnforcer` into a JUnit `@Rule`
