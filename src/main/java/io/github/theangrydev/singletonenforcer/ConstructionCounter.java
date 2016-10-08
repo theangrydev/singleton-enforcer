@@ -85,11 +85,18 @@ public class ConstructionCounter {
     }
 
     public List<Class<?>> dependencyUsageOutsideOf(Class<?> singleton, Class<?> typeOfDependencyThatShouldNotBeLeaked) {
-        List<Object> dependencyThatShouldNotBeLeaked = classDependencies.get(singleton).stream()
+        List<Object> dependencies = classDependencies.get(singleton);
+        if (dependencies == null) {
+            throw new IllegalStateException(format("Did not see any '%s' constructions at all!", singleton));
+        }
+        List<Object> dependencyThatShouldNotBeLeaked = dependencies.stream()
                 .filter(dependency -> typeOfDependencyThatShouldNotBeLeaked.isAssignableFrom(dependency.getClass()))
                 .collect(toList());
-        if (dependencyThatShouldNotBeLeaked.size() != 1) {
-            throw new IllegalArgumentException(format("Type '%s' is not a singleton!", singleton));
+        if (dependencyThatShouldNotBeLeaked.isEmpty()) {
+            throw new IllegalArgumentException(format("Type '%s' was not constructed with a '%s' at all!", singleton, typeOfDependencyThatShouldNotBeLeaked));
+        }
+        if (dependencyThatShouldNotBeLeaked.size() > 1) {
+            throw new IllegalArgumentException(format("Type '%s' is not a singleton! (it was constructed more than once)", singleton));
         }
         return usagesThatAreNotBy(singleton, dependencyUsage.get(dependencyThatShouldNotBeLeaked.get(0)));
     }
