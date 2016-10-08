@@ -36,6 +36,7 @@
         <exclude name="DataflowAnomalyAnalysis"/><!-- Too many false positives -->
         <exclude name="AvoidLiteralsInIfCondition"/><!-- Sometimes it isn't worth extracting a constant for a single usage -->
         <exclude name="DefaultPackage"/><!-- This is part of the API design -->
+        <exclude name="CallSuperInConstructor"/><!-- Calling super() is always redundant -->
     </rule>
     <rule ref="rulesets/java/coupling.xml">
         <exclude name="LoosePackageCoupling"/><!-- This rule would be good but you can only configure class excludes not package excludes -->

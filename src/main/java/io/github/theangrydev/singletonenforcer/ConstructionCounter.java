@@ -46,13 +46,13 @@ import static net.bytebuddy.matcher.ElementMatchers.*;
         "WeakerAccess", // used by ByteBuddy; must be public
         "PMD.TooManyMethods" // TODO: see what can be refactored
 })
-public class ConstructionCounter extends SecurityManager {
+public final class ConstructionCounter extends SecurityManager {
 
     private final Map<Class<?>, List<Object>> classDependencies = new HashMap<>();
     private final Map<Object, List<Class<?>>> dependencyUsage = new HashMap<>();
 
     private final Set<Object> seen = new HashSet<>();
-    private final Map<Class<?>, AtomicLong> constructionCounts = new HashMap<>();
+    private final Map<Class<?>, AtomicLong> timesConstructed = new HashMap<>();
 
     private ConstructionCounter() {
         // should only be constructed via the static factory method
@@ -103,13 +103,13 @@ public class ConstructionCounter extends SecurityManager {
         synchronized (ConstructionCounter.class) {
             classDependencies.clear();
             dependencyUsage.clear();
-            constructionCounts.clear();
+            timesConstructed.clear();
             seen.clear();
         }
     }
 
     ConstructionCounts snapshot() {
-        return new ConstructionCounts(new HashMap<>(classDependencies), new HashMap<>(dependencyUsage), new HashMap<>(constructionCounts));
+        return new ConstructionCounts(new HashMap<>(classDependencies), new HashMap<>(dependencyUsage), new HashMap<>(timesConstructed));
     }
 
     /**
@@ -135,7 +135,7 @@ public class ConstructionCounter extends SecurityManager {
             if (alreadySeen) {
                 return;
             }
-            AtomicLong atomicLong = constructionCounts.putIfAbsent(object.getClass(), new AtomicLong(1));
+            AtomicLong atomicLong = timesConstructed.putIfAbsent(object.getClass(), new AtomicLong(1));
             if (atomicLong != null) {
                 atomicLong.incrementAndGet();
             }
