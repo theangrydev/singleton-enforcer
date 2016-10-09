@@ -61,6 +61,56 @@ public final class ConstructionCounter extends SecurityManager {
     static ConstructionCounter listenForConstructions(String packageToEnforce) {
         Instrumentation instrumentation = ByteBuddyAgent.install();
 
+        checkThatClassesInThePackageToEnforceAreNotAlreadyLoaded(packageToEnforce, instrumentation);
+
+        ConstructionCounter constructionCounter = new ConstructionCounter();
+
+        instrument(packageToEnforce, instrumentation, constructionCounter);
+
+        return constructionCounter;
+    }
+
+    /**
+     * This class is not part of the public API.
+     * <p>
+     * This is the instrumentation method that captures all constructor calls.
+     *
+     * @param object       The "this" object
+     * @param dependencies The arguments passed to the constructor
+     */
+    @SuppressWarnings({"unused", "WeakerAccess"}) // used by ByteBuddy; must be public
+    @RuntimeType
+    public void intercept(@This Object object, @AllArguments Object... dependencies) {
+        checkConstructionWasBySingletonEnforcer(object);
+
+        synchronized (ConstructionCounter.class) {
+            recordDependencies(object.getClass(), dependencies);
+            recordUsage(object.getClass(), dependencies);
+            boolean alreadySeen = !seen.add(object);
+            if (alreadySeen) {
+                return;
+            }
+            AtomicLong atomicLong = timesConstructed.putIfAbsent(object.getClass(), new AtomicLong(1));
+            if (atomicLong != null) {
+                atomicLong.incrementAndGet();
+            }
+        }
+    }
+
+    ConstructionCounts snapshot() {
+        return new ConstructionCounts(new HashMap<>(classDependencies), new HashMap<>(dependencyUsage), new HashMap<>(timesConstructed));
+    }
+
+    void reset() {
+        synchronized (ConstructionCounter.class) {
+            classDependencies.clear();
+            dependencyUsage.clear();
+            timesConstructed.clear();
+            seen.clear();
+        }
+    }
+
+    private static void checkThatClassesInThePackageToEnforceAreNotAlreadyLoaded(String packageToEnforce, Instrumentation instrumentation) {
         List<Class> alreadyLoaded = Arrays.stream(instrumentation.getAllLoadedClasses())
                 .filter(aClass -> !aClass.isSynthetic())
                 .filter(aClass -> !aClass.isInterface())
@@ -72,18 +122,16 @@ public final class ConstructionCounter extends SecurityManager {
                     "SingletonEnforcer must be run in a separate JVM and must be constructed before any classes in that package are loaded! " +
                     "Already loaded classes:%n%s", packageToEnforce, alreadyLoaded));
         }
+    }
 
+    private static void instrument(String packageToEnforce, Instrumentation instrumentation, ConstructionCounter constructionCounter) {
         Junction<TypeDescription> typeConditions = not(isInterface()).and(not(isSynthetic())).and(nameStartsWith(packageToEnforce));
         Junction<MethodDescription> constructorConditions = not(isBridge()).and(not(isSynthetic()));
-
-        ConstructionCounter constructionCounter = new ConstructionCounter();
 
         new AgentBuilder.Default().type(typeConditions).transform((builder, typeDescription, classLoader) -> builder
                 .constructor(constructorConditions)
                 .intercept(SuperMethodCall.INSTANCE.andThen(MethodDelegation.to(constructionCounter))))
                 .installOn(instrumentation);
-
-        return constructionCounter;
     }
 
     private static boolean startsWith(String packageToEnforce, Class<?> aClass) {
@@ -99,46 +147,11 @@ public final class ConstructionCounter extends SecurityManager {
         return aPackage.getName().equals(packageToEnforce);
     }
 
-    void reset() {
-        synchronized (ConstructionCounter.class) {
-            classDependencies.clear();
-            dependencyUsage.clear();
-            timesConstructed.clear();
-            seen.clear();
-        }
-    }
-
-    ConstructionCounts snapshot() {
-        return new ConstructionCounts(new HashMap<>(classDependencies), new HashMap<>(dependencyUsage), new HashMap<>(timesConstructed));
-    }
-
-    /**
-     * This class is not part of the public API.
-     * <p>
-     * This is the instrumentation method that captures all constructor calls.
-     *
-     * @param object       The "this" object
-     * @param dependencies The arguments passed to the constructor
-     */
-    @SuppressWarnings({"unused", "WeakerAccess"}) // used by ByteBuddy; must be public
-    @RuntimeType
-    public void intercept(@This Object object, @AllArguments Object... dependencies) {
+    private void checkConstructionWasBySingletonEnforcer(@This Object object) {
         if (!calledBySingletonEnforcer()) {
             throw new IllegalStateException(format("Instrumented class '%s' was constructed outside of the SingletonEnforcer! " +
                     "You should use SingletonEnforcer.during to exercise the code you want to assert on. " +
                     "Make sure that you run SingletonEnforcer in a separate JVM so that instrumented classes are only used by SingletonEnforcer!", object.getClass()));
-        }
-        synchronized (ConstructionCounter.class) {
-            recordDependencies(object.getClass(), dependencies);
-            recordUsage(object.getClass(), dependencies);
-            boolean alreadySeen = !seen.add(object);
-            if (alreadySeen) {
-                return;
-            }
-            AtomicLong atomicLong = timesConstructed.putIfAbsent(object.getClass(), new AtomicLong(1));
-            if (atomicLong != null) {
-                atomicLong.incrementAndGet();
-            }
         }
     }
 
