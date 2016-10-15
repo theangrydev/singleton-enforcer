@@ -27,7 +27,6 @@ import static java.lang.String.format;
 /**
  * This is the JUnit {@link org.junit.Rule}.
  */
-@SuppressWarnings("WeakerAccess") // this is part of the public API
 public final class SingletonEnforcer implements TestRule {
 
     private static SingletonEnforcer instance;
