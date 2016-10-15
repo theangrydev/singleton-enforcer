@@ -27,7 +27,6 @@ import static java.lang.String.format;
 /**
  * Assertions about the construction counts that were captured during {@link SingletonEnforcer#during(Runnable)}.
  */
-@SuppressWarnings("WeakerAccess") // this is part of the public API
 public class ConstructionCountAssertions {
     private final ConstructionCounts constructionCounts;
 
