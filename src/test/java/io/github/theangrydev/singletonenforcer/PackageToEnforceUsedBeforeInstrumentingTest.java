@@ -27,7 +27,7 @@ public class PackageToEnforceUsedBeforeInstrumentingTest implements WithAssertio
     @Test
     public void alreadyLoadedClass() {
         new ClassToEnforce();
-        assertThatThrownBy(() -> ConstructionCounter.listenForConstructions("io.github.theangrydev.singletonenforcer.test"))
+        assertThatThrownBy(() -> ConstructionCounterFactory.listenForConstructions("io.github.theangrydev.singletonenforcer.test"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageStartingWith("Found some already loaded classes in the package to enforce 'io.github.theangrydev.singletonenforcer.test'. SingletonEnforcer must be run in a separate JVM and must be constructed before any classes in that package are loaded! Already loaded classes:")
                 .hasMessageContaining(ClassToEnforce.class.getName());
@@ -36,7 +36,7 @@ public class PackageToEnforceUsedBeforeInstrumentingTest implements WithAssertio
     @Test
     public void alreadyLoadedClassInSubPackage() {
         new ClassToEnforceInSubPackage();
-        assertThatThrownBy(() -> ConstructionCounter.listenForConstructions("io.github.theangrydev.singletonenforcer.test"))
+        assertThatThrownBy(() -> ConstructionCounterFactory.listenForConstructions("io.github.theangrydev.singletonenforcer.test"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageStartingWith("Found some already loaded classes in the package to enforce 'io.github.theangrydev.singletonenforcer.test'. SingletonEnforcer must be run in a separate JVM and must be constructed before any classes in that package are loaded! Already loaded classes:")
                 .hasMessageContaining(ClassToEnforceInSubPackage.class.getName());
