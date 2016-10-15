@@ -21,7 +21,6 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
-import static io.github.theangrydev.singletonenforcer.ConstructionCounterFactory.listenForConstructions;
 import static java.lang.String.format;
 
 /**
@@ -51,7 +50,8 @@ public final class SingletonEnforcer implements TestRule {
         }
         synchronized (SingletonEnforcer.class) {
             if (instance == null) {
-                instance = new SingletonEnforcer(packageToEnforce, listenForConstructions(packageToEnforce));
+                ConstructionCounter constructionCounter = new ConstructionCounterFactory().listenForConstructions(packageToEnforce);
+                instance = new SingletonEnforcer(packageToEnforce, constructionCounter);
             } else if (!packageToEnforce.equals(instance.packageToEnforce)) {
                 throw new IllegalArgumentException(format("SingletonEnforcer can only enforce one package per JVM. The package currently instrumented is '%s' which is different from the given package '%s'", instance.packageToEnforce, packageToEnforce));
             }

@@ -35,11 +35,7 @@ import static net.bytebuddy.matcher.ElementMatchers.*;
 
 public final class ConstructionCounterFactory {
 
-    private ConstructionCounterFactory() {
-        // should never have an instance
-    }
-
-    static ConstructionCounter listenForConstructions(String packageToEnforce) {
+    ConstructionCounter listenForConstructions(String packageToEnforce) {
         ConstructionCounter constructionCounter = new ConstructionCounter();
 
         Instrumentation instrumentation = ByteBuddyAgent.install();
