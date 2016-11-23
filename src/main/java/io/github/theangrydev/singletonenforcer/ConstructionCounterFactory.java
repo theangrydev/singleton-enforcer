@@ -53,6 +53,7 @@ public final class ConstructionCounterFactory {
         return constructionCounter;
     }
 
+    @SuppressWarnings("rawtypes") // This is what Instrumentation.getAllLoadedClasses returns
     private static void checkThatClassesInThePackageToEnforceAreNotAlreadyLoaded(String packageToEnforce, Instrumentation instrumentation) {
         List<Class> alreadyLoaded = Arrays.stream(instrumentation.getAllLoadedClasses())
                 .filter(aClass -> !aClass.isSynthetic())
