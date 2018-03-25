@@ -1,4 +1,4 @@
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.github.theangrydev/singleton-enforcer/badge.svg?style=flat)](https://maven-badges.herokuapp.com/maven-central/io.github.theangrydev/singleton-enforcer)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.theangrydev/singleton-enforcer.svg)](https://mvnrepository.com/artifact/io.github.theangrydev/singleton-enforcer)
 [![Javadoc](http://javadoc-badge.appspot.com/io.github.theangrydev/singleton-enforcer.svg?label=javadoc)](http://javadoc-badge.appspot.com/io.github.theangrydev/singleton-enforcer)
 [![Gitter](https://badges.gitter.im/singleton-enforcer/Lobby.svg)](https://gitter.im/singleton-enforcer/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
