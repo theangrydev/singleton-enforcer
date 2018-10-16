@@ -6,7 +6,8 @@
 [![codecov](https://codecov.io/gh/theangrydev/singleton-enforcer/branch/master/graph/badge.svg)](https://codecov.io/gh/theangrydev/singleton-enforcer)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/ea483778bdf04ad899c81afd058299eb)](https://www.codacy.com/app/liam-williams/singleton-enforcer?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=theangrydev/singleton-enforcer&amp;utm_campaign=Badge_Grade)
 [![codebeat badge](https://codebeat.co/badges/f6dc7555-60d8-4429-bf84-471d7c55f132)](https://codebeat.co/projects/github-com-theangrydev-singleton-enforcer)
-[![Quality Gate](https://sonarqube.com/api/badges/gate?key=io.github.theangrydev:singleton-enforcer)](https://sonarqube.com/dashboard/index/io.github.theangrydev:singleton-enforcer)
+
+[![Quality Gate](https://sonarcloud.io/api/project_badges/quality_gate?project=io.github.theangrydev:singleton-enforcer)](https://sonarcloud.io/dashboard?id=io.github.theangrydev:singleton-enforcer)
 
 # singleton-enforcer
 Tool to enforce that certain classes are ony ever constructed once
